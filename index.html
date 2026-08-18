@@ -686,6 +686,8 @@ window.dispatchEvent(new Event('firebaseReady'));
     <div class="donut-row" id="mensuelMoisChart" style="justify-content:center"></div>
   </div>
 
+  <button class="action-btn" style="background:var(--red);margin:10px 0 0" onclick="reinitialiserMoisSelectionne()">🗑️ Réinitialiser ce mois (Recettes &amp; Dépenses)</button>
+
   <div class="summary-row">
     <div class="summary-card recettes">
       <div class="sc-label" id="mensuelTotalRLabel">Recettes du mois</div>
@@ -2826,6 +2828,41 @@ function renderMensuelDetail(year, monthIdx){
   }
 }
 
+// Supprime toutes les Recettes ET Dépenses (saisieLog) du mois/année actuellement sélectionné
+// dans l'onglet Mensuel — sur Firestore (tous appareils) et localement. N'affecte aucun autre mois.
+async function reinitialiserMoisSelectionne(){
+  const yearSel = document.getElementById('mYearSelect');
+  const monthSel = document.getElementById('mMonthSelect');
+  if (!yearSel || !monthSel || !yearSel.value) { showToast('⚠️ Sélectionnez d\'abord une année et un mois'); return; }
+  const year = parseInt(yearSel.value, 10);
+  const monthIdx = parseInt(monthSel.value, 10);
+  const libelleMois = (MOIS_FULL[monthIdx] || '') + ' ' + year;
+
+  const entries = saisieLog.filter(e => e.annee === year && e.moisIdx === monthIdx);
+  if (entries.length === 0) { showToast('Aucune écriture pour ' + libelleMois); return; }
+
+  if (!confirm('⚠️ Supprimer DÉFINITIVEMENT les ' + entries.length + ' écriture(s) (Recettes + Dépenses) de ' + libelleMois + ' ?\n\nCette action est irréversible et s\'applique sur tous les appareils.')) return;
+
+  showToast('🗑️ Suppression de ' + libelleMois + '…');
+  let erreurs = [];
+  for (const e of entries) {
+    if (e._docId && window._db) {
+      try { await window._deleteDoc(window._doc(window._db, 'saisies', e._docId)); }
+      catch(err) { erreurs.push(err.message); continue; }
+    }
+    const idx = saisieLog.findIndex(x => x === e);
+    if (idx > -1) saisieLog.splice(idx, 1);
+  }
+  persistSaisieLog();
+
+  if (erreurs.length > 0) {
+    alert('⚠️ ' + (entries.length - erreurs.length) + ' écriture(s) supprimée(s), mais ' + erreurs.length + ' erreur(s) :\n' + erreurs[0]);
+  } else {
+    showToast('✅ ' + libelleMois + ' réinitialisé (' + entries.length + ' écriture(s) supprimée(s))');
+  }
+  refreshAll();
+}
+
 // ===== ANNUAL =====
 function renderAnnual(){
   const grid=document.getElementById('yearsGrid');
@@ -3291,27 +3328,42 @@ async function reinitialiserToutesLesEcritures(){
   const confirmation = prompt('Pour confirmer, tapez SUPPRIMER en majuscules :');
   if (confirmation !== 'SUPPRIMER') { showToast('Réinitialisation annulée'); return; }
 
+  if (!window._db) {
+    alert('❌ Firestore n\'est pas initialisé dans cette page. Impossible de continuer.');
+    return;
+  }
+
   showToast('🗑️ Suppression en cours…');
   const collectionsAEffacer = ['saisies','chambres','historique_chambres','banque','ajustements','passes','points_passes','documents'];
+  let totalSupprimes = 0;
+  let erreurs = [];
 
-  try {
-    if (fbReady && window._db) {
-      for (const nomCollection of collectionsAEffacer) {
-        const snap = await window._getDocs(window._collection(window._db, nomCollection));
-        const suppressions = [];
-        snap.forEach(d => suppressions.push(window._deleteDoc(window._doc(window._db, nomCollection, d.id)).catch(()=>{})));
-        await Promise.all(suppressions);
-      }
+  for (const nomCollection of collectionsAEffacer) {
+    try {
+      const snap = await window._getDocs(window._collection(window._db, nomCollection));
+      const suppressions = [];
+      snap.forEach(d => {
+        suppressions.push(
+          window._deleteDoc(window._doc(window._db, nomCollection, d.id))
+            .then(() => { totalSupprimes++; })
+            .catch(e => erreurs.push(nomCollection + '/' + d.id + ' : ' + e.message))
+        );
+      });
+      await Promise.all(suppressions);
+    } catch(e) {
+      erreurs.push('Lecture de "' + nomCollection + '" : ' + e.message);
     }
-  } catch(e) {
-    alert('❌ Erreur pendant la suppression : ' + e.message + '\n\nRéessayez, ou vérifiez votre connexion internet.');
+  }
+
+  if (erreurs.length > 0) {
+    alert('⚠️ Suppression incomplète : ' + totalSupprimes + ' document(s) supprimé(s), mais ' + erreurs.length + ' erreur(s).\n\nPremière erreur :\n' + erreurs[0] + '\n\nVérifiez les règles Firestore (Firebase → Firestore Database → Règles) : elles doivent autoriser l\'écriture (allow read, write: if true;).');
     return;
   }
 
   // Vide le cache local (repartir totalement propre, ne touche pas l'ID appareil ni les codes)
   Object.keys(localStorage).filter(k => k.startsWith('aubergeTamar_')).forEach(k => localStorage.removeItem(k));
 
-  alert('✅ Toutes les écritures ont été supprimées sur tous les appareils. L\'application va se recharger.');
+  alert('✅ ' + totalSupprimes + ' document(s) supprimé(s) sur tous les appareils. L\'application va se recharger.');
   location.reload();
 }
 
