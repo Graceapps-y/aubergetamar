@@ -198,6 +198,7 @@ window.dispatchEvent(new Event('firebaseReady'));
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .rooms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
   .room-card{background:var(--card);border-radius:12px;padding:12px 8px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer;transition:transform .15s;border:2px solid transparent}
+  .room-card.zone-marine{border-color:#1a3a5c;box-shadow:0 2px 10px rgba(26,58,92,.35)}
   .room-card:active{transform:scale(.95)}
   .room-card.libre{border-color:var(--orange)} .room-card.occupee{border-color:#39ff14} .room-card.maintenance{border-color:var(--red)} .room-card.reservee{border-color:var(--gold)} .room-card.liberee{border-color:#f7dc4a}
   .room-num{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--navy)}
@@ -1803,25 +1804,9 @@ let fbReady = false;
 // ===== HISTORICAL DATA =====
 const MOIS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 
-const DATA = {
-  2017:[{m:'Jan',r:0,d:0},{m:'Fév',r:240000,d:0},{m:'Mar',r:467500,d:0},{m:'Avr',r:613000,d:0},{m:'Mai',r:552000,d:0},{m:'Juin',r:352500,d:0},{m:'Juil',r:539000,d:0},{m:'Aoû',r:770000,d:23180},{m:'Sep',r:808500,d:752000},{m:'Oct',r:845000,d:64800},{m:'Nov',r:698500,d:261500},{m:'Déc',r:1302000,d:399000}],
-  2018:[{m:'Jan',r:1117000,d:0},{m:'Fév',r:1121000,d:0},{m:'Mar',r:1144500,d:0},{m:'Avr',r:946500,d:0},{m:'Mai',r:946500,d:0},{m:'Juin',r:886500,d:0},{m:'Juil',r:0,d:0},{m:'Aoû',r:754000,d:0},{m:'Sep',r:943000,d:0},{m:'Oct',r:1003000,d:0},{m:'Nov',r:1077500,d:0},{m:'Déc',r:977500,d:0}],
-  2019:[{m:'Jan',r:872500,d:0},{m:'Fév',r:752000,d:0},{m:'Mar',r:1028000,d:0},{m:'Avr',r:1235000,d:0},{m:'Mai',r:1036500,d:0},{m:'Juin',r:1269500,d:0},{m:'Juil',r:0,d:0},{m:'Aoû',r:832000,d:0},{m:'Sep',r:1235500,d:0},{m:'Oct',r:1091000,d:0},{m:'Nov',r:1256000,d:0},{m:'Déc',r:1513000,d:0}],
-  2020:[{m:'Jan',r:1596500,d:0},{m:'Fév',r:1790000,d:0},{m:'Mar',r:891000,d:0},{m:'Avr',r:813000,d:0},{m:'Mai',r:913000,d:0},{m:'Juin',r:1203000,d:0},{m:'Juil',r:1295500,d:0},{m:'Aoû',r:1563000,d:0},{m:'Sep',r:1558000,d:0},{m:'Oct',r:1563500,d:0},{m:'Nov',r:1448000,d:0},{m:'Déc',r:2357500,d:0}],
-  2021:[{m:'Jan',r:2268000,d:0},{m:'Fév',r:2028500,d:0},{m:'Mar',r:2284000,d:0},{m:'Avr',r:2019300,d:0},{m:'Mai',r:1910500,d:0},{m:'Juin',r:1706500,d:0},{m:'Juil',r:1663000,d:0},{m:'Aoû',r:1996500,d:0},{m:'Sep',r:1340500,d:0},{m:'Oct',r:1758000,d:0},{m:'Nov',r:2113000,d:0},{m:'Déc',r:2432000,d:0}],
-  2022:[{m:'Jan',r:2289000,d:0},{m:'Fév',r:1970000,d:0},{m:'Mar',r:2331000,d:0},{m:'Avr',r:1931000,d:0},{m:'Mai',r:2099500,d:0},{m:'Juin',r:2295500,d:0},{m:'Juil',r:2369500,d:0},{m:'Aoû',r:1996500,d:0},{m:'Sep',r:2456500,d:0},{m:'Oct',r:2967500,d:0},{m:'Nov',r:2435500,d:0},{m:'Déc',r:3078500,d:0}],
-  2023:[{m:'Jan',r:3225000,d:0},{m:'Fév',r:2789000,d:0},{m:'Mar',r:2844500,d:0},{m:'Avr',r:2423227,d:0},{m:'Mai',r:3416500,d:0},{m:'Juin',r:3067000,d:0},{m:'Juil',r:3074000,d:0},{m:'Aoû',r:3027500,d:0},{m:'Sep',r:2767500,d:0},{m:'Oct',r:3046000,d:0},{m:'Nov',r:2435500,d:0},{m:'Déc',r:3673000,d:0}],
-  2024:[{m:'Jan',r:3882000,d:2180000},{m:'Fév',r:3242000,d:2080000},{m:'Mar',r:2800500,d:2330000},{m:'Avr',r:2687000,d:2020000},{m:'Mai',r:2805000,d:2110000},{m:'Juin',r:2885500,d:2420000},{m:'Juil',r:2977000,d:2235000},{m:'Aoû',r:3064500,d:2210000},{m:'Sep',r:3109000,d:2110000},{m:'Oct',r:3194500,d:2320000},{m:'Nov',r:3368500,d:2440000},{m:'Déc',r:3478500,d:2860000}],
-  2025:[{m:'Jan',r:3455000,d:2410000},{m:'Fév',r:3094500,d:2330000},{m:'Mar',r:2480500,d:2230000},{m:'Avr',r:3426000,d:2590000},{m:'Mai',r:3587000,d:2660000},{m:'Juin',r:3433000,d:2600000},{m:'Juil',r:3367500,d:2540000},{m:'Aoû',r:3264500,d:2490000},{m:'Sep',r:3088500,d:2440000},{m:'Oct',r:2977500,d:2410000},{m:'Nov',r:3803000,d:2780000},{m:'Déc',r:3854000,d:3090000}],
-  2026:[{m:'Jan',r:4442500,d:2910000},{m:'Fév',r:3876000,d:2670000},{m:'Mar',r:3546000,d:2580000},{m:'Avr',r:4250000,d:3090000}]
-};
+const DATA = {};
 
-const ANNUALS = {
-  2017:{r:7188000,d:1500480},2018:{r:10917000,d:0},2019:{r:12121000,d:0},
-  2020:{r:16992000,d:0},2021:{r:23519800,d:0},2022:{r:28220000,d:0},
-  2023:{r:35788727,d:0},2024:{r:37494000,d:27315000},2025:{r:39831000,d:30570000},
-  2026:{r:16114500,d:11250000}
-};
+const ANNUALS = {};
 
 // ===== ANNÉES DISPONIBLES (2017 → 2070) =====
 const MIN_YEAR = 2017, MAX_YEAR = 2070;
@@ -2894,29 +2879,26 @@ const MOIS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','A
 // ===== ROOMS =====
 const ROOMS=[
   {num:'1',type:'Climatisée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'2',type:'Ventilée',status:'occupee',client:'Client 2',arrivee:'2026-07-05',depart:'2026-07-09',prix:15000},
+  {num:'2',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'3',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'4',type:'Ventilée',status:'occupee',client:'Client 4',arrivee:'2026-07-06',depart:'2026-07-08',prix:15000},
+  {num:'4',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'5',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'6',type:'Climatisée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'7',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'8',type:'Climatisée',status:'occupee',client:'Client 8',arrivee:'2026-07-04',depart:'2026-07-10',prix:20000},
+  {num:'8',type:'Climatisée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'9',type:'Climatisée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'10',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'11',type:'Ventilée',status:'occupee',client:'Client 11',arrivee:'2026-07-05',depart:'2026-07-11',prix:15000},
+  {num:'11',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'12',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'13',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'14',type:'Ventilée',status:'occupee',client:'Client 14',arrivee:'2026-07-06',depart:'2026-07-09',prix:15000},
+  {num:'14',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'15',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'16',type:'Climatisée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'17',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'18',type:'Ventilée',status:'occupee',client:'Client 18',arrivee:'2026-07-05',depart:'2026-07-08',prix:15000},
+  {num:'18',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'19',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'20',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
   {num:'21',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'22',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'23',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
-  {num:'24',type:'Ventilée',status:'libre',client:'',arrivee:null,depart:null,prix:null},
 ];
 
 // ===== HISTORIQUE D'OCCUPATION =====
@@ -3187,7 +3169,8 @@ function renderRooms(){
       if (filtre==='reservee' && !(r.status==='reservee'||r.resClient)) return;
 
       const card=document.createElement('div');
-      card.className=`room-card ${r.status}${r.resClient ? ' has-res' : ''}`;
+      const zoneMarine = parseInt(r.num, 10) >= 1 && parseInt(r.num, 10) <= 8;
+      card.className=`room-card ${r.status}${r.resClient ? ' has-res' : ''}${zoneMarine ? ' zone-marine' : ''}`;
       card.onclick=()=>openChambreModal(r.num);
       const nuits = occByRoom[r.num] || 0;
       const resBadge = r.resClient ? `<div class="room-res-badge">🟡 Résa ${r.resArrivee.slice(8,10)}/${r.resArrivee.slice(5,7)}</div>` : '';
@@ -4448,14 +4431,6 @@ function resetChambre(num){
 // ===== SAISIE LOG (in-memory ledger) =====
 // Pre-populate with existing 2026 data
 const saisieLog = [
-  { type:'recettes', mois:'Avril', moisIdx:3, annee:2026, montant:4250000, date:'30/04/2026' },
-  { type:'depenses', mois:'Avril', moisIdx:3, annee:2026, montant:3090000, date:'30/04/2026' },
-  { type:'recettes', mois:'Mars',  moisIdx:2, annee:2026, montant:3546000, date:'31/03/2026' },
-  { type:'depenses', mois:'Mars',  moisIdx:2, annee:2026, montant:2580000, date:'31/03/2026' },
-  { type:'recettes', mois:'Février', moisIdx:1, annee:2026, montant:3876000, date:'28/02/2026' },
-  { type:'depenses', mois:'Février', moisIdx:1, annee:2026, montant:2670000, date:'28/02/2026' },
-  { type:'recettes', mois:'Janvier', moisIdx:0, annee:2026, montant:4442500, date:'31/01/2026' },
-  { type:'depenses', mois:'Janvier', moisIdx:0, annee:2026, montant:2910000, date:'31/01/2026' },
 ];
 
 // ── Persistance locale (localStorage) ──
