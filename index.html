@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -11,7 +12,7 @@
      ============================================================ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, deleteDoc }
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDoc, getDocs, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -42,6 +43,7 @@ window._collection  = collection;
 window._doc         = doc;
 window._setDoc      = setDoc;
 window._getDoc      = getDoc;
+window._getDocs     = getDocs;
 window._deleteDoc   = deleteDoc;
 
 // ── Expose Storage (scan de documents) ──
@@ -1331,6 +1333,13 @@ window.dispatchEvent(new Event('firebaseReady'));
 
     <div class="section-title">🔒 Codes verrouillés (3 échecs)</div>
     <div id="adminLockedList" style="margin-bottom:6px"></div>
+
+    <div class="section-title" style="color:var(--red)">⚠️ Zone de danger</div>
+    <div class="table-card" style="padding:14px;border:1px solid rgba(192,57,43,.25);margin-bottom:12px">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;line-height:1.5">Supprime définitivement TOUTES les données de l'application sur tous les appareils : recettes, dépenses, chambres, passes, banque, ajustements, historique et documents. Les appareils autorisés et codes d'accès ne sont pas affectés.</div>
+      <div style="font-size:10.5px;color:var(--red);font-weight:700;margin:8px 0 12px">⚠️ Action irréversible — à utiliser uniquement pour repartir de zéro</div>
+      <button class="action-btn" style="background:var(--red);margin:0" onclick="reinitialiserToutesLesEcritures()">🗑️ Réinitialiser toutes les écritures</button>
+    </div>
 
     <button class="action-btn" onclick="closeModal('modalAdmin')" style="background:var(--border);color:var(--text);box-shadow:none;margin-top:12px;margin-bottom:0">Fermer</button>
   </div>
@@ -3271,6 +3280,39 @@ function validerPassesJourDansRecettes(){
   persistPasses();
   renderPassesParJour();
   refreshAll('✅ Total des Passes validé dans les Recettes');
+}
+
+// ===== RÉINITIALISATION GÉNÉRALE : TOUTES LES ÉCRITURES (Recettes, Dépenses, Chambres, Passes, Banque, Ajustements, Documents) =====
+// Supprime tous les documents de toutes les collections de données sur Firestore (sur tous les appareils),
+// puis vide le cache local et recharge l'app. Les appareils autorisés (collection 'appareils') et les
+// paramètres (PIN banque, etc. — collection 'parametres') ne sont volontairement PAS touchés.
+async function reinitialiserToutesLesEcritures(){
+  if (!confirm('⚠️ Cette action va supprimer DÉFINITIVEMENT toutes les Recettes, Dépenses, Chambres, Passes, mouvements Banque, ajustements et documents scannés, sur TOUS les appareils.\n\nLes appareils autorisés et les codes d\'accès ne seront pas affectés.\n\nContinuer ?')) return;
+  const confirmation = prompt('Pour confirmer, tapez SUPPRIMER en majuscules :');
+  if (confirmation !== 'SUPPRIMER') { showToast('Réinitialisation annulée'); return; }
+
+  showToast('🗑️ Suppression en cours…');
+  const collectionsAEffacer = ['saisies','chambres','historique_chambres','banque','ajustements','passes','points_passes','documents'];
+
+  try {
+    if (fbReady && window._db) {
+      for (const nomCollection of collectionsAEffacer) {
+        const snap = await window._getDocs(window._collection(window._db, nomCollection));
+        const suppressions = [];
+        snap.forEach(d => suppressions.push(window._deleteDoc(window._doc(window._db, nomCollection, d.id)).catch(()=>{})));
+        await Promise.all(suppressions);
+      }
+    }
+  } catch(e) {
+    alert('❌ Erreur pendant la suppression : ' + e.message + '\n\nRéessayez, ou vérifiez votre connexion internet.');
+    return;
+  }
+
+  // Vide le cache local (repartir totalement propre, ne touche pas l'ID appareil ni les codes)
+  Object.keys(localStorage).filter(k => k.startsWith('aubergeTamar_')).forEach(k => localStorage.removeItem(k));
+
+  alert('✅ Toutes les écritures ont été supprimées sur tous les appareils. L\'application va se recharger.');
+  location.reload();
 }
 
 // ===== RÉINITIALISATION GÉNÉRALE : Chambres + Historique + Passes =====
